@@ -117,36 +117,36 @@ namespace ManagedBass
         /// <summary>
         /// The device driver has been certified by Microsoft. Always true for WDM drivers.
         /// </summary>
-        public bool IsCertified => flags.HasFlag(BASSInfoFlags.Certified);
+        public bool IsCertified => (flags & BASSInfoFlags.Certified) != 0;
 
         /// <summary>
         /// 16-bit samples are supported by hardware mixing.
         /// </summary>
-        public bool Supports16BitSamples => flags.HasFlag(BASSInfoFlags.Secondary16Bit);
+        public bool Supports16BitSamples => (flags & BASSInfoFlags.Secondary16Bit) != 0;
 
         /// <summary>
         /// 8-bit samples are supported by hardware mixing.
         /// </summary>
-        public bool Supports8BitSamples => flags.HasFlag(BASSInfoFlags.Secondary8Bit);
+        public bool Supports8BitSamples => (flags & BASSInfoFlags.Secondary8Bit) != 0;
 
         /// <summary>
         /// The device supports all sample rates between minrate and maxrate.
         /// </summary>
-        public bool SupportsContinuousRate => flags.HasFlag(BASSInfoFlags.ContinuousRate);
+        public bool SupportsContinuousRate => (flags & BASSInfoFlags.ContinuousRate) != 0;
 
         /// <summary>
         /// The device's drivers has DirectSound support
         /// </summary>
-        public bool SupportsDirectSound => !flags.HasFlag(BASSInfoFlags.EmulatedDrivers);
+        public bool SupportsDirectSound => (flags & BASSInfoFlags.EmulatedDrivers) == 0;
 
         /// <summary>
         /// Mono samples are supported by hardware mixing.
         /// </summary>
-        public bool SupportsMonoSamples => flags.HasFlag(BASSInfoFlags.Mono);
+        public bool SupportsMonoSamples => (flags & BASSInfoFlags.Mono) != 0;
 
         /// <summary>
         /// Stereo samples are supported by hardware mixing.
         /// </summary>
-        public bool SupportsStereoSamples => flags.HasFlag(BASSInfoFlags.Stereo);
+        public bool SupportsStereoSamples => (flags & BASSInfoFlags.Stereo) != 0;
     }
 }

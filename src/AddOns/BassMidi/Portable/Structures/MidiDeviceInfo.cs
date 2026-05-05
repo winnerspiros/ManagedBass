@@ -39,12 +39,12 @@ namespace ManagedBass.Midi
         /// <summary>
         /// Gets whether the device is enabled.
         /// </summary>
-        public bool IsEnabled => flags.HasFlag(DeviceInfoFlags.Enabled);
+        public bool IsEnabled => (flags & DeviceInfoFlags.Enabled) != 0;
 
         /// <summary>
         /// Gets whether the device is already initialized.
         /// </summary>
-        public bool IsInitialized => flags.HasFlag(DeviceInfoFlags.Initialized);
+        public bool IsInitialized => (flags & DeviceInfoFlags.Initialized) != 0;
 
         /// <summary>
 		/// Returns the Name of the Device.

@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -153,10 +154,28 @@ namespace ManagedBass
 #if NET5_0_OR_GREATER
             // On .NET 5+ we can decode directly from the raw pointer — no intermediate byte[] copy.
             return Encoding.UTF8.GetString(bytes, Size);
+#elif NETSTANDARD2_1_OR_GREATER
+            // On .NET Standard 2.1+ (e.g. Mono/Xamarin) use ReadOnlySpan to decode without byte[] allocation.
+            return Encoding.UTF8.GetString(new ReadOnlySpan<byte>(bytes, Size));
 #else
-            var buffer = new byte[Size];
-            Marshal.Copy(Ptr, buffer, 0, Size);
-            return Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+            // netstandard2.0 / .NET Framework: use stackalloc for small strings (≤ 256 bytes).
+            // For larger strings fall back to a pooled array to avoid large stack frames.
+            if (Size <= 256)
+            {
+                var buf = stackalloc byte[Size];
+                for (var i = 0; i < Size; i++) buf[i] = bytes[i];
+                return Encoding.UTF8.GetString(buf, Size);
+            }
+            else
+            {
+                var buffer = ArrayPool<byte>.Shared.Rent(Size);
+                try
+                {
+                    Marshal.Copy(Ptr, buffer, 0, Size);
+                    return Encoding.UTF8.GetString(buffer, 0, Size);
+                }
+                finally { ArrayPool<byte>.Shared.Return(buffer); }
+            }
 #endif
         }
 

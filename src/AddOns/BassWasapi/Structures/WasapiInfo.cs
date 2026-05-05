@@ -60,11 +60,11 @@ namespace ManagedBass.Wasapi
         /// <summary>
 		/// Is the device used in event-driven mode?
 		/// </summary>
-		public bool IsEventDriven => initflags.HasFlag(WasapiInitFlags.EventDriven);
+		public bool IsEventDriven => (initflags & WasapiInitFlags.EventDriven) != 0;
         
         /// <summary>
 		/// Is the device used in exclusive mode?
 		/// </summary>
-		public bool IsExclusive => initflags.HasFlag(WasapiInitFlags.Exclusive);
+		public bool IsExclusive => (initflags & WasapiInitFlags.Exclusive) != 0;
     }
 }

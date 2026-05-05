@@ -53,11 +53,11 @@ namespace ManagedBass
         /// <summary>
         /// The device driver has been certified by Microsoft. Always true for WDM drivers.
         /// </summary>
-        public bool IsCertified => flags.HasFlag(RecordInfoFlags.Certified);
+        public bool IsCertified => (flags & RecordInfoFlags.Certified) != 0;
 
         /// <summary>
         /// The device's drivers has DirectSound support
         /// </summary>
-        public bool SupportsDirectSound => flags.HasFlag(RecordInfoFlags.EmulatedDrivers);
+        public bool SupportsDirectSound => (flags & RecordInfoFlags.EmulatedDrivers) != 0;
     }
 }

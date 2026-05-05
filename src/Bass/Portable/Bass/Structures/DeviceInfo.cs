@@ -72,22 +72,22 @@ namespace ManagedBass
         /// <summary>
         /// The device is the system default device.
         /// </summary>
-        public bool IsDefault => flags.HasFlag(DeviceInfoFlags.Default);
+        public bool IsDefault => (flags & DeviceInfoFlags.Default) != 0;
 
         /// <summary>
         /// The device is enabled and can be used.
         /// </summary>
-        public bool IsEnabled => flags.HasFlag(DeviceInfoFlags.Enabled);
+        public bool IsEnabled => (flags & DeviceInfoFlags.Enabled) != 0;
 
         /// <summary>
         /// The device is already initialized.
         /// </summary>
-        public bool IsInitialized => flags.HasFlag(DeviceInfoFlags.Initialized);
+        public bool IsInitialized => (flags & DeviceInfoFlags.Initialized) != 0;
         
         /// <summary>
         /// The device is a Loopback device.
         /// </summary>
-        public bool IsLoopback => flags.HasFlag(DeviceInfoFlags.Loopback);
+        public bool IsLoopback => (flags & DeviceInfoFlags.Loopback) != 0;
 
         /// <summary>
         /// The device's Type.
