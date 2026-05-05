@@ -211,7 +211,7 @@
         MFVideo = 48,
 
         /// <summary>
-        /// See <see cref="Bass.EnableAirplayReceivers"/>.
+        /// Enable/disable Airplay receivers (iOS). Use <see cref="Bass.Configure(Configuration,bool)"/>.
         /// </summary>
         Airplay = 49,
 
