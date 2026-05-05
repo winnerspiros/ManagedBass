@@ -14,13 +14,6 @@
         <ProjectReference Include="..\..\..\Bass\Portable\Bass.csproj"/>
     </ItemGroup>
 
-    <PropertyGroup Condition=" '$(Platform)' == 'Android' ">
-        <DefineConstants>TRACE;__ANDROID__;__STATIC_LINKING__</DefineConstants>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Platform)' == 'iOS' ">
-        <DefineConstants>TRACE;__IOS__</DefineConstants>
-    </PropertyGroup>
-
     <ItemGroup>
         <None Include="../../../../icon.png" Pack="true" PackagePath="" />
         <None Include="../../../../LICENSE.md" Pack="true" PackagePath="" />
