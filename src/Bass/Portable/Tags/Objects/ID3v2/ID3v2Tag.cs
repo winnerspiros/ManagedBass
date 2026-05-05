@@ -330,7 +330,7 @@ namespace ManagedBass
         // Decodes a big-endian uint of 1-4 bytes without heap allocation.
         uint ReadUInt(int Length)
         {
-            if ((uint)Length - 1 > 3)
+            if (Length < 1 || Length > 4)
                 throw new ArgumentOutOfRangeException(nameof(Length), "ReadUInt method can read 1-4 byte(s)");
 
             uint result = 0;

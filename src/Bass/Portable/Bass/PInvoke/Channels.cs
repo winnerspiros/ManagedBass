@@ -898,6 +898,7 @@ namespace ManagedBass
         /// <returns>Number of bytes written, or -1 on error.</returns>
         public static unsafe int ChannelGetData(int Handle, System.Span<float> Buffer)
         {
+            if (Buffer.IsEmpty) return 0;
             fixed (float* p = Buffer)
                 return ChannelGetData(Handle, (IntPtr)p, Buffer.Length * sizeof(float));
         }
@@ -910,6 +911,7 @@ namespace ManagedBass
         /// <returns>Number of bytes written, or -1 on error.</returns>
         public static unsafe int ChannelGetData(int Handle, System.Span<byte> Buffer)
         {
+            if (Buffer.IsEmpty) return 0;
             fixed (byte* p = Buffer)
                 return ChannelGetData(Handle, (IntPtr)p, Buffer.Length);
         }

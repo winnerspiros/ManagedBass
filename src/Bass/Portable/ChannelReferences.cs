@@ -62,8 +62,10 @@ namespace ManagedBass
 
         static void Callback(int Handle, int Channel, int Data, IntPtr User)
         {
-            // Collect keys for this channel without LINQ to avoid allocations.
-            // ConcurrentDictionary enumeration is safe to do while removing entries.
+            // ConcurrentDictionary enumeration is safe without a snapshot here because:
+            // (a) TryRemove never throws during enumeration, and
+            // (b) this callback is invoked only once per channel Free event, so no new entries
+            //     for this channel can be added after the Free fires — meaning nothing is missed.
             foreach (var pair in Procedures)
             {
                 if (pair.Key.Handle == Channel)
