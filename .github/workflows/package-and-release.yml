@@ -35,6 +35,8 @@ jobs:
   # ─── 1. Build & test ──────────────────────────────────────────────────────
   build-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -59,6 +61,8 @@ jobs:
   package:
     needs: build-test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
 
@@ -81,7 +85,7 @@ jobs:
             VER="${{ github.ref_name }}"
             VER="${VER#v}"           # strip leading 'v'
           else
-            # Auto-name: YYYY.MMDD.<run_number>
+            # Auto-name: YYYY.mmdd.<run_number>  (e.g. 2024.0425.7)
             DATE=$(date -u +"%Y.%m%d")
             VER="${DATE}.${{ github.run_number }}"
           fi
@@ -111,6 +115,8 @@ jobs:
   publish:
     needs: package
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     # Push when: a Release was published, a version tag was pushed, or the
     # manual trigger was run with publish=true
     if: |
