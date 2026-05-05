@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -13,6 +13,9 @@ namespace ManagedBass
     {
         int _channel, _effectHandle, _hfsync;
         GCHandle _gch;
+
+        // Cached delegate — avoids a new closure allocation on every ApplyOn call.
+        SyncProcedure _freeSyncProc;
         
         /// <summary>
         /// Effect's Parameters.
@@ -31,8 +34,10 @@ namespace ManagedBass
 
             if (!_gch.IsAllocated)
                 _gch = GCHandle.Alloc(Parameters, GCHandleType.Pinned);
-            
-            _hfsync = Bass.ChannelSetSync(Channel, SyncFlags.Free, 0, (a, b, c, d) => Dispose());
+
+            // Create the delegate once and reuse on subsequent ApplyOn calls.
+            _freeSyncProc ??= (_, _, _, _) => Dispose();
+            _hfsync = Bass.ChannelSetSync(Channel, SyncFlags.Free, 0, _freeSyncProc);
         }
                 
         int _priority;

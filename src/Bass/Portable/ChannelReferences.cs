@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
 
 namespace ManagedBass
 {
@@ -9,7 +8,11 @@ namespace ManagedBass
     /// </summary>
     public static class ChannelReferences
     {
-        static readonly ConcurrentDictionary<Tuple<int, int>, object> Procedures = new ConcurrentDictionary<Tuple<int, int>, object>();
+        // (int,int) ValueTuple is a struct — zero heap allocation for the dictionary key,
+        // unlike the previous Tuple<int,int> which caused a heap object per Add/Remove.
+        static readonly ConcurrentDictionary<(int Handle, int SpecificHandle), object> Procedures =
+            new ConcurrentDictionary<(int, int), object>();
+
         static readonly SyncProcedure Freeproc = Callback;
 
         /// <summary>
@@ -26,16 +29,24 @@ namespace ManagedBass
             if (proc.Equals(Freeproc))
                 return;
 
-            var key = Tuple.Create(Handle, SpecificHandle);
+            var key = (Handle, SpecificHandle);
 
-            var contains = Procedures.ContainsKey(key);
-            
-            if (Freeproc != null && Procedures.All(pair => pair.Key.Item1 != Handle))
+            // Check (without LINQ) whether any existing key belongs to this Handle.
+            // If none found, register the Free sync so we can clean up on channel release.
+            bool hasHandle = false;
+            foreach (var pair in Procedures)
+            {
+                if (pair.Key.Handle == Handle)
+                {
+                    hasHandle = true;
+                    break;
+                }
+            }
+
+            if (!hasHandle)
                 Bass.ChannelSetSync(Handle, SyncFlags.Free, 0, Freeproc);
 
-            if (contains)
-                Procedures[key] = proc;
-            else Procedures.TryAdd(key, proc);
+            Procedures[key] = proc;
         }
 
         /// <summary>
@@ -46,17 +57,18 @@ namespace ManagedBass
             if (!CrossPlatformHelper.IsDynamicCodeSupported)
                 return;
 
-            var key = Tuple.Create(Handle, SpecialHandle);
-            Procedures.TryRemove(key, out object unused);
+            Procedures.TryRemove((Handle, SpecialHandle), out _);
         }
 
         static void Callback(int Handle, int Channel, int Data, IntPtr User)
         {
-            // ToArray is necessary because the object iterated on should not be modified.
-            var toRemove = Procedures.Where(Pair => Pair.Key.Item1 == Channel).Select(Pair => Pair.Key).ToArray();
-            
-            foreach (var key in toRemove)
-                Procedures.TryRemove(key, out object unused);
+            // Collect keys for this channel without LINQ to avoid allocations.
+            // ConcurrentDictionary enumeration is safe to do while removing entries.
+            foreach (var pair in Procedures)
+            {
+                if (pair.Key.Handle == Channel)
+                    Procedures.TryRemove(pair.Key, out _);
+            }
         }
     }
 }

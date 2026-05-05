@@ -15,4 +15,10 @@
         <None Include="../../../icon.png" Pack="true" PackagePath="" />
         <None Include="../../../LICENSE.md" Pack="true" PackagePath="" />
     </ItemGroup>
+
+    <!-- System.Buffers provides ArrayPool<T> for netstandard2.0 targets.
+         It is built-in on net5+ so we only reference the package for the legacy TFM. -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+        <PackageReference Include="System.Buffers" Version="4.5.1" />
+    </ItemGroup>
 </Project>

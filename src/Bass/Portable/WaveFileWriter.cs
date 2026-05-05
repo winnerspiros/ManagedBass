@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using static System.Text.Encoding;
 
 namespace ManagedBass
@@ -15,6 +16,13 @@ namespace ManagedBass
         readonly long _dataSizePos, _factSampleCountPos;
         readonly object _locker = new object();
         readonly bool _leaveOpen;
+
+        // Static pre-encoded header constants — avoids UTF8.GetBytes("RIFF") allocation on every construction.
+        static readonly byte[] _riff    = new byte[] { (byte)'R', (byte)'I', (byte)'F', (byte)'F' };
+        static readonly byte[] _wavefmt = new byte[] { (byte)'W', (byte)'A', (byte)'V', (byte)'E',
+                                                        (byte)'f', (byte)'m', (byte)'t', (byte)' ' };
+        static readonly byte[] _fact    = new byte[] { (byte)'f', (byte)'a', (byte)'c', (byte)'t' };
+        static readonly byte[] _data    = new byte[] { (byte)'d', (byte)'a', (byte)'t', (byte)'a' };
         
         /// <summary>
         /// Number of bytes of audio
@@ -48,9 +56,9 @@ namespace ManagedBass
             _ofstream = outStream;
             _writer = new BinaryWriter(outStream, UTF8);
 
-            _writer.Write(UTF8.GetBytes("RIFF"));
+            _writer.Write(_riff);
             _writer.Write(0); // placeholder
-            _writer.Write(UTF8.GetBytes("WAVEfmt "));
+            _writer.Write(_wavefmt);
             _waveFormat = format;
 
             _writer.Write(18 + format.ExtraSize); // wave format Length
@@ -59,14 +67,14 @@ namespace ManagedBass
             // CreateFactChunk
             if (format.Encoding != WaveFormatTag.Pcm)
             {
-                _writer.Write(UTF8.GetBytes("fact"));
+                _writer.Write(_fact);
                 _writer.Write(4);
                 _factSampleCountPos = outStream.Position;
                 _writer.Write(0); // number of samples
             }
 
             // WriteDataChunkHeader
-            _writer.Write(UTF8.GetBytes("data"));
+            _writer.Write(_data);
             _dataSizePos = outStream.Position;
             _writer.Write(0); // placeholder
 
@@ -103,11 +111,17 @@ namespace ManagedBass
         {
             try
             {
-                var n = Length / 2;
-
                 lock (_locker)
+                {
+#if NET5_0_OR_GREATER
+                    // Reinterpret the short[] as raw bytes and write in one shot — no per-element loop.
+                    _writer.Write(MemoryMarshal.AsBytes(new ReadOnlySpan<short>(Data, 0, Length / 2)));
+#else
+                    var n = Length / 2;
                     for (var i = 0; i < n; i++)
                         _writer.Write(Data[i]);
+#endif
+                }
 
                 this.Length += Length;
 
@@ -125,11 +139,17 @@ namespace ManagedBass
         {
             try
             {
-                var n = Length / 4;
-
                 lock (_locker)
+                {
+#if NET5_0_OR_GREATER
+                    // Reinterpret the float[] as raw bytes and write in one shot — no per-element loop.
+                    _writer.Write(MemoryMarshal.AsBytes(new ReadOnlySpan<float>(Data, 0, Length / 4)));
+#else
+                    var n = Length / 4;
                     for (var i = 0; i < n; i++)
                         _writer.Write(Data[i]);
+#endif
+                }
 
                 this.Length += Length;
 
@@ -150,7 +170,7 @@ namespace ManagedBass
         }
 
         /// <summary>
-        /// Actually performs the close,making sure the header contains the correct data
+        /// Actually performs the close, making sure the header contains the correct data
         /// </summary>
         /// <param name="Disposing">True if called from <see>Dispose</see></param>
         void Dispose(bool Disposing)

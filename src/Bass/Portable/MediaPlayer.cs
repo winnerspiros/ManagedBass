@@ -58,7 +58,7 @@ namespace ManagedBass
 
                 if (_syncContext == null)
                     Handler();
-                else _syncContext.Post(S => Handler(), null);
+                else _syncContext.Post(static s => ((Action)s)(), Handler);
             };
         }
 
@@ -397,11 +397,21 @@ namespace ManagedBass
         /// </summary>
         protected virtual void OnPropertyChanged([CallerMemberName] string PropertyName = null)
         {
-            Action f = () => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(PropertyName));
+            var handler = PropertyChanged;
+            if (handler == null) return;
+
+            // Invoke directly or marshal to the captured synchronization context.
+            // Capture handler upfront to avoid race between null-check and invocation.
+            var args = new PropertyChangedEventArgs(PropertyName);
 
             if (_syncContext == null)
-                f();
-            else _syncContext.Post(S => f(), null);
+                handler(this, args);
+            else
+                _syncContext.Post(static s =>
+                {
+                    var (h, sender, a) = ((PropertyChangedEventHandler, object, PropertyChangedEventArgs))s;
+                    h(sender, a);
+                }, (handler, (object)this, args));
         }
     }
 }
