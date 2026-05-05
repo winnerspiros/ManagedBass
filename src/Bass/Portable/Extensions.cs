@@ -173,8 +173,8 @@ namespace ManagedBass
             while (bytes[Size] != 0)
                 ++Size;
 
-#if NET5_0_OR_GREATER
-            // On .NET 5+ we can decode directly from the raw pointer — no intermediate byte[] copy.
+#if NETCOREAPP2_1_OR_GREATER || NET5_0_OR_GREATER
+            // .NET Core 2.1+ / .NET 5+: decode directly from the raw pointer — no intermediate byte[] copy.
             return Encoding.UTF8.GetString(bytes, Size);
 #elif NETSTANDARD2_1_OR_GREATER
             // On .NET Standard 2.1+ (e.g. Mono/Xamarin) use ReadOnlySpan to decode without byte[] allocation.

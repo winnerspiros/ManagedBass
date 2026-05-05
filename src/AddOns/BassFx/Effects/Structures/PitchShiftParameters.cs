@@ -22,7 +22,9 @@ namespace ManagedBass.Fx
         /// Defines the FFT frame size used for the processing. Typical values are 1024, 2048 (default) and 4096, max is 8192.
         /// </summary>
         /// <remarks>It may be any value up to 8192 but it MUST be a power of 2.
-        /// <para>Must be <see langword="int"/> (32-bit) to match the BASS C API <c>long</c> on Windows.</para></remarks>
+        /// <para>Stored as <see langword="int"/> (C# 32-bit) rather than <see langword="long"/> because the BASS
+        /// C API uses <c>long</c> which is 32-bit on Windows (all currently supported BASS platforms).
+        /// Using <see langword="int"/> ensures correct struct layout on all targets.</para></remarks>
         public int lFFTsize;
 
         /// <summary>

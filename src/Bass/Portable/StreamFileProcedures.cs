@@ -57,7 +57,8 @@ namespace ManagedBass
 
             try
             {
-                // BASS FILESEEKPROC passes an absolute byte offset from the start of the file.
+                // BASS FILESEEKPROC receives an absolute byte offset from the start of the file
+                // (un4seen docs: "The new position, in bytes, from the start of the file").
                 _stream.Seek(Offset, SeekOrigin.Begin);
                 return true;
             }
