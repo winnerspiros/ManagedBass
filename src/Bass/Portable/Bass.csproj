@@ -8,10 +8,7 @@
         <Description>.Net wrapper for un4seen BASS audio library</Description>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Configurations>Debug;Release</Configurations>
-        <Platforms>AnyCPU;iOS</Platforms>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Platform)' == 'iOS' ">
-        <DefineConstants>TRACE;__IOS__</DefineConstants>
+        <Platforms>AnyCPU;iOS;Android</Platforms>
     </PropertyGroup>
 
     <ItemGroup>

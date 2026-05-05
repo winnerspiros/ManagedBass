@@ -6,13 +6,16 @@
         <Description>.Net wrapper for un4seen BASS audio library</Description>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Configurations>Debug;Release</Configurations>
-        <Platforms>AnyCPU;iOS</Platforms>
+        <Platforms>AnyCPU;iOS;Android</Platforms>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\Bass\Portable\Bass.csproj"/>
     </ItemGroup>
 
+    <PropertyGroup Condition=" '$(Platform)' == 'Android' ">
+        <DefineConstants>TRACE;__ANDROID__;__STATIC_LINKING__</DefineConstants>
+    </PropertyGroup>
     <PropertyGroup Condition=" '$(Platform)' == 'iOS' ">
         <DefineConstants>TRACE;__IOS__</DefineConstants>
     </PropertyGroup>

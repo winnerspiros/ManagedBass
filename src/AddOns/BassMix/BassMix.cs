@@ -556,6 +556,32 @@ namespace ManagedBass.Mix
         /// <exception cref="Errors.NotAvailable">The channel does not have buffering (<see cref="BassFlags.MixerBuffer"/>) enabled.</exception>
         [DllImport(DllName, EntryPoint = "BASS_Mixer_ChannelGetData")]
         public static extern int ChannelGetData(int Handle, [In, Out] float[] Buffer, int Length);
+
+#if NET5_0_OR_GREATER
+        /// <summary>
+        /// Retrieves buffered data from a mixer source channel (zero-copy <see cref="System.Span{T}"/> overload).
+        /// </summary>
+        /// <param name="Handle">The mixer source channel handle.</param>
+        /// <param name="Buffer"><see cref="System.Span{T}"/> to write the sample data to.</param>
+        /// <returns>Number of bytes written, or -1 on error.</returns>
+        public static unsafe int ChannelGetData(int Handle, System.Span<float> Buffer)
+        {
+            fixed (float* p = Buffer)
+                return ChannelGetData(Handle, (IntPtr)p, Buffer.Length * sizeof(float));
+        }
+
+        /// <summary>
+        /// Retrieves buffered data from a mixer source channel (zero-copy <see cref="System.Span{T}"/> overload).
+        /// </summary>
+        /// <param name="Handle">The mixer source channel handle.</param>
+        /// <param name="Buffer"><see cref="System.Span{T}"/> to write the sample data to.</param>
+        /// <returns>Number of bytes written, or -1 on error.</returns>
+        public static unsafe int ChannelGetData(int Handle, System.Span<byte> Buffer)
+        {
+            fixed (byte* p = Buffer)
+                return ChannelGetData(Handle, (IntPtr)p, Buffer.Length);
+        }
+#endif
         #endregion
 
         /// <summary>

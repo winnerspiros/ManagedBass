@@ -1,6 +1,8 @@
 ﻿<Project>
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+        <!-- netstandard2.0: Xamarin/Mono/legacy hosts (iOS, Android via Xamarin)
+             net10.0: all modern .NET hosts (desktop, Android via MAUI/net-android, etc.) -->
+        <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
@@ -11,5 +13,13 @@
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/winnerspiros/ManagedBass</RepositoryUrl>
         <PackageProjectUrl>https://github.com/winnerspiros/ManagedBass</PackageProjectUrl>
+    </PropertyGroup>
+    <!-- iOS static linking: all libraries are compiled into __Internal at runtime -->
+    <PropertyGroup Condition=" '$(Platform)' == 'iOS' ">
+        <DefineConstants>$(DefineConstants);__IOS__;__STATIC_LINKING__</DefineConstants>
+    </PropertyGroup>
+    <!-- Android static linking: same pattern as iOS for native library embedding -->
+    <PropertyGroup Condition=" '$(Platform)' == 'Android' ">
+        <DefineConstants>$(DefineConstants);__ANDROID__;__STATIC_LINKING__</DefineConstants>
     </PropertyGroup>
 </Project>

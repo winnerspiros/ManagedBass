@@ -888,6 +888,32 @@ namespace ManagedBass
         /// </returns>
         [DllImport(DllName, EntryPoint = "BASS_ChannelGetData")]
         public static extern int ChannelGetData(int Handle, [In, Out] float[] Buffer, int Length);
+
+#if NET5_0_OR_GREATER
+        /// <summary>
+        /// Retrieves sample data from a channel (zero-copy <see cref="System.Span{T}"/> overload).
+        /// </summary>
+        /// <param name="Handle">The channel handle... a HCHANNEL, HMUSIC, HSTREAM, or HRECORD.</param>
+        /// <param name="Buffer"><see cref="System.Span{T}"/> to write the sample data to.</param>
+        /// <returns>Number of bytes written, or -1 on error.</returns>
+        public static unsafe int ChannelGetData(int Handle, System.Span<float> Buffer)
+        {
+            fixed (float* p = Buffer)
+                return ChannelGetData(Handle, (IntPtr)p, Buffer.Length * sizeof(float));
+        }
+
+        /// <summary>
+        /// Retrieves sample data from a channel (zero-copy <see cref="System.Span{T}"/> overload).
+        /// </summary>
+        /// <param name="Handle">The channel handle... a HCHANNEL, HMUSIC, HSTREAM, or HRECORD.</param>
+        /// <param name="Buffer"><see cref="System.Span{T}"/> to write the sample data to.</param>
+        /// <returns>Number of bytes written, or -1 on error.</returns>
+        public static unsafe int ChannelGetData(int Handle, System.Span<byte> Buffer)
+        {
+            fixed (byte* p = Buffer)
+                return ChannelGetData(Handle, (IntPtr)p, Buffer.Length);
+        }
+#endif
         #endregion
 
         /// <summary>
