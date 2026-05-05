@@ -588,7 +588,7 @@ namespace ManagedBass
         /// When enabled, BASS uses the driver's own play position reporting for more precise values.
         /// </summary>
         /// <remarks>
-        /// This is set to disabled (0) by osu for compatibility with DirectSound legacy mode.
+        /// Some applications disable this (set to 0) for compatibility with DirectSound legacy mode.
         /// </remarks>
         public static int TruePlayPosition
         {
@@ -644,7 +644,8 @@ namespace ManagedBass
         /// <summary>
         /// Backwards-compatible handling of MP3 gapless data.
         /// When enabled (non-zero), disables iTunSMPB tag parsing and the automatic 529-sample gap assumption
-        /// that BASS adds for consistency across platforms. osu uses this to match legacy expectations.
+        /// that BASS adds for consistency across platforms.
+        /// Some applications enable this to maintain legacy MP3 gap behavior.
         /// </summary>
         public static int Mp3OldGaps
         {

@@ -248,7 +248,8 @@
         /// <summary>
         /// Backwards-compatible handling of MP3 gapless data.
         /// When enabled (non-zero), disables iTunSMPB tag parsing and the automatic 529-sample gap assumption
-        /// that BASS adds for consistency across platforms. osu uses this to match legacy expectations.
+        /// that BASS adds for consistency across platforms.
+        /// Some applications enable this to maintain legacy MP3 gap behavior.
         /// </summary>
         Mp3OldGaps = 68,
 

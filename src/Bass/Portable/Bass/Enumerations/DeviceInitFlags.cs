@@ -93,7 +93,8 @@ namespace ManagedBass
         /// <summary>
         /// Re-initialize a device that has already been initialized, retaining any existing BASS channels.
         /// Without this flag, <see cref="Bass.Init"/> will fail with <see cref="Errors.Already"/> if the
-        /// device is already initialized. osu uses this flag for seamless device switching.
+        /// device is already initialized. Useful for applications that need seamless device switching without
+        /// recreating channels.
         /// </summary>
         Reinit = 0x80
     }
