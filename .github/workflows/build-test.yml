@@ -8,9 +8,14 @@ on:
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 jobs:
   build-test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
     steps:
@@ -27,7 +32,7 @@ jobs:
         working-directory: ${{ github.workspace }}/src
 
       - name: Build
-        run: dotnet build -c Release --no-restore
+        run: dotnet build -c Release --no-restore -warnaserror
         working-directory: ${{ github.workspace }}/src
 
       - name: Test

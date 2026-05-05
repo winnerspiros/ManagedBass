@@ -132,7 +132,7 @@ namespace ManagedBass.Midi
         /// The FontPack function can be used to compress the sample data in SF2 files.
         /// SFZ samples are in separate files and can be compressed using standard encoding tools.
         /// </para>
-        /// <para>Using soundfonts that are located somewhere other than the file system is possible via <see cref="FontInit(FileProcedures,IntPtr,BassFlags)" />.</para>
+        /// <para>Using soundfonts that are located somewhere other than the file system is possible via <see cref="FontInit(FileProcedures,IntPtr,FontInitFlags)" />.</para>
         /// <para><b>SFZ support</b></para>
         /// <para>
         /// The following SFZ opcodes are supported: ampeg_attack, ampeg_decay, ampeg_delay, ampeg_hold, ampeg_release, ampeg_sustain, ampeg_vel2attack, ampeg_vel2decay, amplfo_delay/fillfo_delay/pitchlfo_delay, amplfo_depth, amplfo_freq/fillfo_freq/pitchlfo_freq, amp_veltrack, cutoff, effect1, effect2, end, fileg_attack/pitcheg_attack, fileg_decay/pitcheg_decay, fileg_delay/pitcheg_delay, fileg_depth, fileg_hold/pitcheg_hold, fileg_release/pitcheg_release, fileg_sustain/pitcheg_sustain, fileg_vel2depth, fillfo_depth, fil_veltrack, group, hikey, hivel, key, lokey, loop_end, loop_mode, loop_start, lovel, offset, off_by, pan, pitcheg_depth, pitchlfo_depth, pitch_keycenter, pitch_keytrack, pitch_veltrack, resonance, sample, seq_length, seq_position, transpose, tune, volume. 

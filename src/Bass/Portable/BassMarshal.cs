@@ -28,10 +28,9 @@ public static class BassMarshal
     }
 
     /// <summary>Returns the size of an unmanaged type in bytes.</summary>
-    /// <param name="t">The type whose size is to be returned.</param>
+    /// <typeparam name="T">The type whose size is to be returned.</typeparam>
     /// <returns>The size of the specified type in unmanaged code.</returns>
-    /// <exception cref="T:System.ArgumentException">The <paramref name="t" /> parameter is a generic type definition.</exception>
-    /// <exception cref="T:System.ArgumentNullException">The <paramref name="t" /> parameter is <see langword="null" />.</exception>
+    /// <exception cref="T:System.ArgumentException">The <typeparamref name="T"/> parameter is a generic type definition.</exception>
     public static int SizeOf<T>() =>
 #if NETFRAMEWORK
         Marshal.SizeOf(typeof(T));

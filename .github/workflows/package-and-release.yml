@@ -30,6 +30,7 @@ on:
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ─── 1. Build & test ──────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ jobs:
         working-directory: src
 
       - name: Build (Release)
-        run: dotnet build -c Release --no-restore
+        run: dotnet build -c Release --no-restore -warnaserror
         working-directory: src
 
       - name: Test
@@ -97,7 +98,7 @@ jobs:
         working-directory: src
 
       - name: Build (Release, versioned)
-        run: dotnet build -c Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet build -c Release --no-restore -warnaserror -p:Version=${{ steps.version.outputs.version }}
         working-directory: src
 
       - name: Pack
