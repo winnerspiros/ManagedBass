@@ -31,7 +31,8 @@ namespace ManagedBass.DirectX8
         /// <summary>
         /// Value that specifies whether to swap left and right delays with each successive echo. The default value is <see langword="false" />, meaning no swap.
         /// </summary>
-        public bool lPanDelay;
+        /// <remarks>Stored as <see langword="int"/> (0 = false, non-zero = true) to keep the struct blittable for <see cref="System.Runtime.InteropServices.GCHandle"/> pinning.</remarks>
+        public int lPanDelay;
 
         /// <summary>
         /// Gets the <see cref="EffectType"/>.

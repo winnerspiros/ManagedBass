@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -28,22 +29,25 @@ namespace ManagedBass
             Seek = SeekProc;
         }
 
-        byte[] b;
-
         int ReadProc(IntPtr Buffer, int Length, IntPtr User)
         {
+            if (Length <= 0)
+                return 0;
+
+            // Rent a temporary buffer from the shared pool to avoid per-call heap allocation.
+            var buf = ArrayPool<byte>.Shared.Rent(Length);
             try
             {
-                if (b == null || b.Length < Length)
-                    b = new byte[Length];
-
-                var read = _stream.Read(b, 0, Length);
-
-                Marshal.Copy(b, 0, Buffer, read);
-
+                var read = _stream.Read(buf, 0, Length);
+                if (read > 0)
+                    Marshal.Copy(buf, 0, Buffer, read);
                 return read;
             }
             catch { return 0; }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buf);
+            }
         }
 
         bool SeekProc(long Offset, IntPtr User)
@@ -53,7 +57,9 @@ namespace ManagedBass
 
             try
             {
-                _stream.Seek(Offset, SeekOrigin.Current);
+                // BASS FILESEEKPROC receives an absolute byte offset from the start of the file
+                // (un4seen docs: "The new position, in bytes, from the start of the file").
+                _stream.Seek(Offset, SeekOrigin.Begin);
                 return true;
             }
             catch { return false; }

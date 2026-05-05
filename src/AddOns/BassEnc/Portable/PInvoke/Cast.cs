@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -138,8 +139,17 @@ namespace ManagedBass.Enc
             if (string.IsNullOrEmpty(Metadata))
                 return false;
 
-            var bytes = Encoding.UTF8.GetBytes(Metadata);
-            return BASS_Encode_CastSendMeta(Handle, Type, bytes, bytes.Length);
+            var byteCount = Encoding.UTF8.GetByteCount(Metadata);
+            var buffer = ArrayPool<byte>.Shared.Rent(byteCount);
+            try
+            {
+                Encoding.UTF8.GetBytes(Metadata, 0, Metadata.Length, buffer, 0);
+                return BASS_Encode_CastSendMeta(Handle, Type, buffer, byteCount);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         /// <summary>

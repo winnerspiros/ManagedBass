@@ -21,14 +21,18 @@ namespace ManagedBass.Fx
         /// <summary>
         /// Defines the FFT frame size used for the processing. Typical values are 1024, 2048 (default) and 4096, max is 8192.
         /// </summary>
-        /// <remarks>It may be any value up to 8192 but it MUST be a power of 2.</remarks>
-        public long lFFTsize;
+        /// <remarks>It may be any value up to 8192 but it MUST be a power of 2.
+        /// <para>Stored as <see langword="int"/> (C# 32-bit) rather than <see langword="long"/> because the BASS
+        /// C API uses <c>long</c> which is 32-bit on Windows (all currently supported BASS platforms).
+        /// Using <see langword="int"/> ensures correct struct layout on all targets.</para></remarks>
+        public int lFFTsize;
 
         /// <summary>
         /// Is the STFT oversampling factor which also determines the overlap between adjacent STFT frames. Default = 8.
         /// </summary>
-        /// <remarks>It should at least be 4 for moderate scaling ratios. A value of 32 is recommended for best quality (better quality = higher CPU usage).</remarks>
-        public long lOsamp;
+        /// <remarks>It should at least be 4 for moderate scaling ratios. A value of 32 is recommended for best quality (better quality = higher CPU usage).
+        /// <para>Must be <see langword="int"/> (32-bit) to match the BASS C API <c>long</c> on Windows.</para></remarks>
+        public int lOsamp;
 
         /// <summary>
         /// A <see cref="FXChannelFlags" /> flag to define on which channels to apply the effect. Default: <see cref="FXChannelFlags.All"/>

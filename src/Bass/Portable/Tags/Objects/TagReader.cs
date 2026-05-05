@@ -54,7 +54,7 @@ namespace ManagedBass
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(result?.Title))
+            if (string.IsNullOrWhiteSpace(result?.Title))
                 result.Title = System.IO.Path.GetFileNameWithoutExtension(FileName);
 
             return result;
@@ -146,12 +146,15 @@ namespace ManagedBass
         {
             foreach (var tag in Tags)
             {
-                var arrx = tag.Split(Separator);
-                var key = arrx[0].ToLower();
-                var value = arrx[1];
+                // Use IndexOf instead of Split to avoid allocating a string[] for every tag.
+                var idx = tag.IndexOf(Separator);
+                if (idx < 0) continue;
+
+                var key   = tag.Substring(0, idx).ToLowerInvariant();
+                var value = tag.Substring(idx + 1);
 
                 if (!SetTagUsingLookupTable(key, value, LookupTable))
-                    yield return new KeyValuePair<string, string>(arrx[0], value);
+                    yield return new KeyValuePair<string, string>(tag.Substring(0, idx), value);
             }
         }
 

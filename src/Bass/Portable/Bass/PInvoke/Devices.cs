@@ -72,6 +72,12 @@ namespace ManagedBass
         /// if that happens, it can be detected via <see cref="GetInfo" /> and the <see cref="BassInfo.InitFlags"/>.
         /// </para>
         /// <para>On Linux and Windows CE, the length of the device's buffer can be set via the <see cref="PlaybackBufferLength" /> config option.</para>
+        /// <para>
+        /// <b>Android:</b> To use AAudio (the low-latency API available on Android 8.0 / API 26 and above) set
+        /// <see cref="AndroidAAudio"/> to <see langword="true"/> <em>before</em> calling <see cref="Init"/>.
+        /// BASS will automatically fall back to AudioTrack on older devices.
+        /// After <see cref="Init"/>, the AAudio session ID can be read via <see cref="AndroidSessionId"/>.
+        /// </para>
         /// </remarks>
         /// <seealso cref="Free()"/>
         /// <seealso cref="CPUUsage"/>

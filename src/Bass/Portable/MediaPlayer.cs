@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -17,6 +18,12 @@ namespace ManagedBass
         #region Fields
         readonly SynchronizationContext _syncContext;
         int _handle;
+
+        // Cached SyncProcedure delegates — one allocation per MediaPlayer instance instead of
+        // three new closures + three new SyncProcedure delegates every time Handle is assigned.
+        SyncProcedure _onFreeSync;
+        SyncProcedure _onStopSync;
+        SyncProcedure _onEndSync;
         
         /// <summary>
         /// Channel Handle of the loaded audio file.
@@ -31,40 +38,59 @@ namespace ManagedBass
 
                 _handle = value;
 
-                // Init Events
-                Bass.ChannelSetSync(Handle, SyncFlags.Free, 0, GetSyncProcedure(() => Disposed?.Invoke(this, EventArgs.Empty)));
-                Bass.ChannelSetSync(Handle, SyncFlags.Stop, 0, GetSyncProcedure(() => MediaFailed?.Invoke(this, EventArgs.Empty)));
-                Bass.ChannelSetSync(Handle, SyncFlags.End, 0, GetSyncProcedure(() =>
+                // Lazily create each SyncProcedure once per MediaPlayer instance and reuse across loads.
+                _onFreeSync ??= WrapSync(() => Disposed?.Invoke(this, EventArgs.Empty));
+                _onStopSync ??= WrapSync(() => MediaFailed?.Invoke(this, EventArgs.Empty));
+                _onEndSync  ??= WrapSync(() =>
                 {
                     try
                     {
-                        if (!Bass.ChannelHasFlag(Handle, BassFlags.Loop))
+                        if ((Bass.ChannelFlags(Handle, 0, 0) & BassFlags.Loop) == 0)
                             MediaEnded?.Invoke(this, EventArgs.Empty);
                     }
                     finally { OnStateChanged(); }
-                }));
+                });
+
+                // Init Events
+                Bass.ChannelSetSync(Handle, SyncFlags.Free, 0, _onFreeSync);
+                Bass.ChannelSetSync(Handle, SyncFlags.Stop, 0, _onStopSync);
+                Bass.ChannelSetSync(Handle, SyncFlags.End,  0, _onEndSync);
             }
         }
 
         bool _restartOnNextPlayback;
         #endregion
 
-        SyncProcedure GetSyncProcedure(Action Handler)
+        // Wraps a bare Action in a SyncProcedure that respects _syncContext (marshals to UI thread if needed).
+        SyncProcedure WrapSync(Action handler)
         {
             return (SyncHandle, Channel, Data, User) =>
             {
-                if (Handler == null)
-                    return;
-
                 if (_syncContext == null)
-                    Handler();
-                else _syncContext.Post(S => Handler(), null);
+                    handler();
+                else _syncContext.Post(static s => ((Action)s)(), handler);
             };
         }
 
         static MediaPlayer()
         {
             var currentDev = Bass.CurrentDevice;
+
+#if __ANDROID__
+            // On Android, opt in to AAudio (Android 8.0+ low-latency native API) before Init.
+            // BASS falls back to AudioTrack automatically on devices running Android < 8.0,
+            // so this is safe to set unconditionally.
+            Bass.AndroidAAudio = true;
+
+            // Request 512-sample (≈11.6 ms @ 44100 Hz) AAudio buffer — lowest reliable value
+            // on most Android devices. Reduces round-trip latency significantly vs the 100 ms default.
+            // Must be set before Bass.Init().
+            Bass.DevicePeriod = -512;
+
+            // Reduce the stream-buffer update interval from the 100 ms default to 10 ms.
+            // This allows BASS to fill the AAudio buffer more aggressively and avoids underruns.
+            Bass.UpdatePeriod = 10;
+#endif
 
             if (currentDev == -1 || !Bass.GetDeviceInfo(Bass.CurrentDevice).IsInitialized)
                 Bass.Init(currentDev);
@@ -392,16 +418,31 @@ namespace ManagedBass
         /// </summary>
         public event PropertyChangedEventHandler PropertyChanged;
 
+        // Reuse PropertyChangedEventArgs instances by name — they are immutable and safe to share.
+        static readonly ConcurrentDictionary<string, PropertyChangedEventArgs> _argsCache =
+            new ConcurrentDictionary<string, PropertyChangedEventArgs>(StringComparer.Ordinal);
+
         /// <summary>
         /// Fires the <see cref="PropertyChanged"/> event.
         /// </summary>
         protected virtual void OnPropertyChanged([CallerMemberName] string PropertyName = null)
         {
-            Action f = () => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(PropertyName));
+            var handler = PropertyChanged;
+            if (handler == null) return;
+
+            // Invoke directly or marshal to the captured synchronization context.
+            // Capture handler upfront to avoid race between null-check and invocation.
+            var args = _argsCache.GetOrAdd(PropertyName ?? string.Empty,
+                static name => new PropertyChangedEventArgs(name));
 
             if (_syncContext == null)
-                f();
-            else _syncContext.Post(S => f(), null);
+                handler(this, args);
+            else
+                _syncContext.Post(static s =>
+                {
+                    var (h, sender, a) = ((PropertyChangedEventHandler, object, PropertyChangedEventArgs))s;
+                    h(sender, a);
+                }, (handler, (object)this, args));
         }
     }
 }

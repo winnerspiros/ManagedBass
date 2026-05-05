@@ -493,7 +493,17 @@ namespace ManagedBass
         /// <exception cref="Errors.Unknown">Some other mystery problem!</exception>
         public static int SampleLoad(byte[] Memory, long Offset, int Length, int MaxNoOfPlaybacks, BassFlags Flags)
         {
-            return GCPin.CreateStreamHelper(Pointer => SampleLoad(Pointer, Offset, Length, MaxNoOfPlaybacks, Flags), Memory);
+            // BASS_SampleLoad always copies the data internally, so the pin only needs to
+            // live for the duration of the native call — no async ChannelSetSync needed.
+            var gch = GCHandle.Alloc(Memory, GCHandleType.Pinned);
+            try
+            {
+                return SampleLoad(gch.AddrOfPinnedObject(), Offset, Length, MaxNoOfPlaybacks, Flags);
+            }
+            finally
+            {
+                gch.Free();
+            }
         }
         #endregion
     }

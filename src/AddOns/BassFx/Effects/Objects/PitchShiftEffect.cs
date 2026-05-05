@@ -40,7 +40,7 @@ namespace ManagedBass.Fx
         /// Defines the FFT frame size used for the processing. Typical values are 1024, 2048 (default) and 4096, max is 8192.
         /// </summary>
         /// <remarks>It may be any value up to 8192 but it MUST be a power of 2.</remarks>
-        public long FFTFrameSize
+        public int FFTFrameSize
         {
             get => Parameters.lFFTsize;
             set
@@ -55,7 +55,7 @@ namespace ManagedBass.Fx
         /// Is the STFT oversampling factor which also determines the overlap between adjacent STFT frames. Default = 8.
         /// </summary>
         /// <remarks>It should at least be 4 for moderate scaling ratios. A value of 32 is recommended for best quality (better quality = higher CPU usage).</remarks>
-        public long OversamplingFactor
+        public int OversamplingFactor
         {
             get => Parameters.lOsamp;
             set

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace ManagedBass.Cd
@@ -31,18 +31,15 @@ namespace ManagedBass.Cd
         /// <summary>
         /// The list of tracks retrieved (see <see cref="TOCTrack" />, up to 100 tracks).
         /// </summary>
-        public IList<TOCTrack> Tracks
+        /// <remarks>Returns an <see cref="ArraySegment{T}"/> view over the internal fixed-size array — no allocation.</remarks>
+        public ArraySegment<TOCTrack> Tracks
         {
             get
             {
+                if (tracks == null)
+                    return default;
                 var n = size / BassMarshal.SizeOf<TOC>();
-
-                var list = new List<TOCTrack>(n);
-                
-                for (var i = 0; i < n; ++i)
-                    list.Add(tracks[i]);
-
-                return list;
+                return new ArraySegment<TOCTrack>(tracks, 0, Math.Min(n, tracks.Length));
             }
         }
     }

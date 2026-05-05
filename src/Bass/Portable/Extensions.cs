@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -26,18 +26,12 @@ namespace ManagedBass
         /// <summary>
         /// Converts <see cref="Resolution"/> to <see cref="BassFlags"/>
         /// </summary>
-        public static BassFlags ToBassFlag(this Resolution Resolution)
+        public static BassFlags ToBassFlag(this Resolution Resolution) => Resolution switch
         {
-            switch (Resolution)
-            {
-                case Resolution.Byte:
-                    return BassFlags.Byte;
-                case Resolution.Float:
-                    return BassFlags.Float;
-                default:
-                    return BassFlags.Default;
-            }
-        }
+            Resolution.Byte  => BassFlags.Byte,
+            Resolution.Float => BassFlags.Float,
+            _                => BassFlags.Default,
+        };
         
         /// <summary>
         /// Returns the <param name="N">n'th (max 15)</param> pair of Speaker Assignment Flags
@@ -83,52 +77,51 @@ namespace ManagedBass
         /// <summary>
         /// Returns a string representation for given number of channels.
         /// </summary>
-        public static string ChannelCountToString(int Channels)
+        public static string ChannelCountToString(int Channels) => Channels switch
         {
-            switch (Channels)
-            {
-                case 1:
-                    return "Mono";
-                case 2:
-                    return "Stereo";
-                case 3:
-                    return "2.1";
-                case 4:
-                    return "Quad";
-                case 5:
-                    return "4.1";
-                case 6:
-                    return "5.1";
-                case 7:
-                    return "6.1";
-                default:
-                    if (Channels < 1)
-                        throw new ArgumentException("Channels must be greater than Zero.");
-                    return Channels + " Channels";
-            }
-        }
+            1 => "Mono",
+            2 => "Stereo",
+            3 => "2.1",
+            4 => "Quad",
+            5 => "4.1",
+            6 => "5.1",
+            7 => "6.1",
+            _ when Channels < 1 => throw new ArgumentException("Channels must be greater than Zero."),
+            _ => Channels + " Channels",
+        };
 
         /// <summary>
         /// Extract an array of strings from a pointer to ANSI null-terminated string ending with a double null.
         /// </summary>
-        public static string[] ExtractMultiStringAnsi(IntPtr Ptr)
+        public static unsafe string[] ExtractMultiStringAnsi(IntPtr Ptr)
         {
-            var l = new List<string>();
+            if (Ptr == IntPtr.Zero)
+                return Array.Empty<string>();
 
-            while (true)
+            // Pass 1: count entries by walking byte-by-byte — no string allocation.
+            var count = 0;
+            var p = (byte*)Ptr;
+            while (*p != 0)
             {
-                var str = Ptr == IntPtr.Zero ? null : Marshal.PtrToStringAnsi(Ptr);
-
-                if (string.IsNullOrEmpty(str))
-                    break;
-                
-                l.Add(str);
-
-                // char '\0'
-                Ptr += str.Length + 1;
+                while (*p != 0) p++; // advance past the string
+                p++;                 // skip null terminator
+                count++;
             }
 
-            return l.ToArray();
+            if (count == 0)
+                return Array.Empty<string>();
+
+            // Pass 2: fill an exactly-sized array — no List<string> overhead.
+            var result = new string[count];
+            p = (byte*)Ptr;
+            for (var i = 0; i < count; i++)
+            {
+                result[i] = Marshal.PtrToStringAnsi((IntPtr)p);
+                while (*p != 0) p++;
+                p++; // skip null terminator
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -136,39 +129,76 @@ namespace ManagedBass
         /// </summary>
         public static string[] ExtractMultiStringUtf8(IntPtr Ptr)
         {
-            var l = new List<string>();
+            if (Ptr == IntPtr.Zero)
+                return Array.Empty<string>();
 
+            // Pass 1: count entries to allocate an exact-size array — no List<string> overhead.
+            var count = 0;
+            var p = Ptr;
             while (true)
             {
-                var str = PtrToStringUtf8(Ptr, out int size);
-
-                if (string.IsNullOrEmpty(str))
-                    break;
- 
-                l.Add(str);
-
-                Ptr += size + 1;
+                var s = PtrToStringUtf8(p, out var size);
+                if (string.IsNullOrEmpty(s)) break;
+                count++;
+                p += size + 1;
             }
 
-            return l.ToArray();
+            if (count == 0)
+                return Array.Empty<string>();
+
+            // Pass 2: fill the exact-sized array.
+            var result = new string[count];
+            p = Ptr;
+            for (var i = 0; i < count; i++)
+            {
+                result[i] = PtrToStringUtf8(p, out var size);
+                p += size + 1;
+            }
+
+            return result;
         }
 
         static unsafe string PtrToStringUtf8(IntPtr Ptr, out int Size)
         {
             Size = 0;
 
+            if (Ptr == IntPtr.Zero)
+                return null;
+
             var bytes = (byte*)Ptr.ToPointer();
 
-            if (Ptr == IntPtr.Zero || bytes[0] == 0)
+            if (bytes[0] == 0)
                 return null;
             
             while (bytes[Size] != 0)
                 ++Size;
-            
-            var buffer = new byte[Size];
-            Marshal.Copy(Ptr, buffer, 0, Size);
-            
-            return Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+
+#if NETCOREAPP2_1_OR_GREATER || NET5_0_OR_GREATER
+            // .NET Core 2.1+ / .NET 5+: decode directly from the raw pointer — no intermediate byte[] copy.
+            return Encoding.UTF8.GetString(bytes, Size);
+#elif NETSTANDARD2_1_OR_GREATER
+            // On .NET Standard 2.1+ (e.g. Mono/Xamarin) use ReadOnlySpan to decode without byte[] allocation.
+            return Encoding.UTF8.GetString(new ReadOnlySpan<byte>(bytes, Size));
+#else
+            // netstandard2.0 / .NET Framework: use stackalloc for small strings (≤ 256 bytes).
+            // For larger strings fall back to a pooled array to avoid large stack frames.
+            if (Size <= 256)
+            {
+                var buf = stackalloc byte[Size];
+                for (var i = 0; i < Size; i++) buf[i] = bytes[i];
+                return Encoding.UTF8.GetString((byte*)buf, Size);
+            }
+            else
+            {
+                var buffer = ArrayPool<byte>.Shared.Rent(Size);
+                try
+                {
+                    Marshal.Copy(Ptr, buffer, 0, Size);
+                    return Encoding.UTF8.GetString(buffer, 0, Size);
+                }
+                finally { ArrayPool<byte>.Shared.Return(buffer); }
+            }
+#endif
         }
 
         /// <summary>
@@ -176,17 +206,21 @@ namespace ManagedBass
         /// </summary>
         public static string PtrToStringUtf8(IntPtr Ptr)
         {
-            return PtrToStringUtf8(Ptr, out int size);
+            return PtrToStringUtf8(Ptr, out int _);
         }
 
         /// <summary>
         /// Returns a <see cref="StreamProcedure"/> which can be used to Play Silence on a Device (Useful during Wasapi Loopback Capture).
         /// </summary>
-        public static StreamProcedure SilenceStreamProcedure { get; } = (Handle, Buffer, Length, User) =>
+        public static StreamProcedure SilenceStreamProcedure { get; } = static (Handle, Buffer, Length, User) =>
         {
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+            // Zero the entire output buffer with a single intrinsic rather than a byte-by-byte Marshal.WriteByte loop.
+            unsafe { new System.Span<byte>((void*)Buffer, Length).Clear(); }
+#else
             for (var i = 0; i < Length; ++i)
                 Marshal.WriteByte(Buffer, i, 0);
-
+#endif
             return Length;
         };
 

@@ -400,12 +400,12 @@ namespace ManagedBass.Mix
         /// <summary>
         /// Gets whether a flag is present.
         /// </summary>
-        public static bool ChannelHasFlag(int handle, BassFlags flag) => ChannelFlags(handle, 0, 0).HasFlag(flag);
+        public static bool ChannelHasFlag(int handle, BassFlags flag) => (ChannelFlags(handle, 0, 0) & flag) != 0;
 
         /// <summary>
         /// Adds a flag to Mixer.
         /// </summary>
-        public static bool ChannelAddFlag(int handle, BassFlags flag) => ChannelFlags(handle, flag, flag).HasFlag(flag);
+        public static bool ChannelAddFlag(int handle, BassFlags flag) => (ChannelFlags(handle, flag, flag) & flag) != 0;
 
         /// <summary>
         /// Removes a flag from Mixer.
@@ -413,7 +413,7 @@ namespace ManagedBass.Mix
         /// <param name="handle"></param>
         /// <param name="flag"></param>
         /// <returns></returns>
-        public static bool ChannelRemoveFlag(int handle, BassFlags flag) => !ChannelFlags(handle, 0, flag).HasFlag(flag);
+        public static bool ChannelRemoveFlag(int handle, BassFlags flag) => (ChannelFlags(handle, 0, flag) & flag) == 0;
         #endregion
 
         #region Channel Get Data
@@ -556,6 +556,32 @@ namespace ManagedBass.Mix
         /// <exception cref="Errors.NotAvailable">The channel does not have buffering (<see cref="BassFlags.MixerBuffer"/>) enabled.</exception>
         [DllImport(DllName, EntryPoint = "BASS_Mixer_ChannelGetData")]
         public static extern int ChannelGetData(int Handle, [In, Out] float[] Buffer, int Length);
+
+#if NET5_0_OR_GREATER
+        /// <summary>
+        /// Retrieves buffered data from a mixer source channel (zero-copy <see cref="System.Span{T}"/> overload).
+        /// </summary>
+        /// <param name="Handle">The mixer source channel handle.</param>
+        /// <param name="Buffer"><see cref="System.Span{T}"/> to write the sample data to.</param>
+        /// <returns>Number of bytes written, or -1 on error.</returns>
+        public static unsafe int ChannelGetData(int Handle, System.Span<float> Buffer)
+        {
+            fixed (float* p = Buffer)
+                return ChannelGetData(Handle, (IntPtr)p, Buffer.Length * sizeof(float));
+        }
+
+        /// <summary>
+        /// Retrieves buffered data from a mixer source channel (zero-copy <see cref="System.Span{T}"/> overload).
+        /// </summary>
+        /// <param name="Handle">The mixer source channel handle.</param>
+        /// <param name="Buffer"><see cref="System.Span{T}"/> to write the sample data to.</param>
+        /// <returns>Number of bytes written, or -1 on error.</returns>
+        public static unsafe int ChannelGetData(int Handle, System.Span<byte> Buffer)
+        {
+            fixed (byte* p = Buffer)
+                return ChannelGetData(Handle, (IntPtr)p, Buffer.Length);
+        }
+#endif
         #endregion
 
         /// <summary>
@@ -775,7 +801,7 @@ namespace ManagedBass.Mix
         public static int ChannelSetSync(int Handle, SyncFlags Type, long Parameter, SyncProcedure Procedure, IntPtr User = default(IntPtr))
         {
             // Define a dummy SyncProcedure for OneTime syncs.
-            var proc = Type.HasFlag(SyncFlags.Onetime)
+            var proc = (Type & SyncFlags.Onetime) != 0
                 ? ((I, Channel, Data, Ptr) =>
                 {
                     Procedure(I, Channel, Data, Ptr);
@@ -835,7 +861,7 @@ namespace ManagedBass.Mix
         public static int ChannelSetSync(int Handle, SyncFlags Type, long Parameter, SyncProcedureEx Procedure, IntPtr User = default(IntPtr))
         {
             // Define a dummy SyncProcedureEx for OneTime syncs.
-            var proc = Type.HasFlag(SyncFlags.Onetime)
+            var proc = (Type & SyncFlags.Onetime) != 0
                 ? ((I, Channel, Data, Ptr, Offset) =>
                 {
                     Procedure(I, Channel, Data, Ptr, Offset);

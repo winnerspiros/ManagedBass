@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace ManagedBass.Wma
@@ -575,21 +574,21 @@ namespace ManagedBass.Wma
         /// <exception cref="Errors.Unknown">Some other mystery problem!</exception>
         public static unsafe int[] EncodeGetRates(int Frequency, int Channels, WMAEncodeFlags Flags)
         {
-            var list = new List<int>();
-
             var rates = BASS_WMA_EncodeGetRates(Frequency, Channels, Flags);
 
-            if (rates != null)
-            {
-                while (*rates != 0)
-                {
-                    list.Add(*rates);
-                    rates++;
-                }
-            }
-            else return null;
+            if (rates == null)
+                return null;
 
-            return list.ToArray();
+            // Count entries first so we can allocate the exact-sized array without a List<int>.
+            var count = 0;
+            var p = rates;
+            while (*p != 0) { count++; p++; }
+
+            var result = new int[count];
+            for (var i = 0; i < count; i++)
+                result[i] = rates[i];
+
+            return result;
         }
         #endregion
 

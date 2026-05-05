@@ -2,24 +2,23 @@
     <PropertyGroup>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <AssemblyName>ManagedBass</AssemblyName>
-        <Authors>MathewSachin</Authors>
         
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/ManagedBass/ManagedBass</RepositoryUrl>
-        <PackageProjectUrl>https://github.com/ManagedBass/ManagedBass</PackageProjectUrl>
         <PackageIcon>icon.png</PackageIcon>
         <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
         <Description>.Net wrapper for un4seen BASS audio library</Description>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Configurations>Debug;Release</Configurations>
-        <Platforms>AnyCPU;iOS</Platforms>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Platform)' == 'iOS' ">
-        <DefineConstants>TRACE;__IOS__</DefineConstants>
+        <Platforms>AnyCPU;iOS;Android</Platforms>
     </PropertyGroup>
 
     <ItemGroup>
         <None Include="../../../icon.png" Pack="true" PackagePath="" />
         <None Include="../../../LICENSE.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <!-- System.Buffers provides ArrayPool<T> for netstandard2.0 targets.
+         It is built-in on net5+ so we only reference the package for the legacy TFM. -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+        <PackageReference Include="System.Buffers" Version="4.5.1" />
     </ItemGroup>
 </Project>

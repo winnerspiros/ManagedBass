@@ -572,5 +572,103 @@ namespace ManagedBass
             get => GetConfigBool(Configuration.DevNonStop);
             set => Configure(Configuration.DevNonStop, value);
         }
+
+        /// <summary>
+        /// Gets or sets whether to enable loopback recording.
+        /// </summary>
+        public static bool LoopbackRecording
+        {
+            get => GetConfigBool(Configuration.LoopbackRecording);
+            set => Configure(Configuration.LoopbackRecording, value);
+        }
+
+        /// <summary>
+        /// Windows Vista and above: Enable true play position mode?
+        /// When disabled, BASS will report the playback position based on when the data is sent to the driver.
+        /// When enabled, BASS uses the driver's own play position reporting for more precise values.
+        /// </summary>
+        /// <remarks>
+        /// Some applications disable this (set to 0) for compatibility with DirectSound legacy mode.
+        /// </remarks>
+        public static int TruePlayPosition
+        {
+            get => GetConfig(Configuration.TruePlayPosition);
+            set => Configure(Configuration.TruePlayPosition, value);
+        }
+
+        /// <summary>
+        /// iOS: Configure the audio session.
+        /// Set to 16 (<c>BASS_IOS_SESSION_DISABLE</c>) to leave session configuration to the host app.
+        /// </summary>
+        public static int IOSSession
+        {
+            get => GetConfig(Configuration.IOSSession);
+            set => Configure(Configuration.IOSSession, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the device update period in milliseconds (or negative value for exact sample count).
+        /// <para>
+        /// This is the most direct lever for output latency on Android (AAudio/AudioTrack) and WASAPI.
+        /// Lower values reduce latency but increase CPU usage and risk of audio glitches.
+        /// </para>
+        /// <para>
+        /// <b>Negative values</b> request an exact sample count instead of milliseconds:
+        /// -256 = 256 samples (≈5.8 ms @ 44100 Hz), -512 = 512 samples (≈11.6 ms), -1024 = 1024 samples (≈23.2 ms).
+        /// For Android/AAudio, -512 is the recommended starting point — reliable on most devices.
+        /// Use -256 only if your device supports it without glitches.
+        /// </para>
+        /// <para><b>Platform-specific:</b> This setting must be changed before calling <see cref="Init"/>.</para>
+        /// </summary>
+        public static int DevicePeriod
+        {
+            get => GetConfig(Configuration.DevicePeriod);
+            set => Configure(Configuration.DevicePeriod, value);
+        }
+
+        /// <summary>
+        /// Android: Gets the AAudio session ID of the output device, or 0 if AAudio is not being used.
+        /// </summary>
+        /// <remarks>Read-only — setting is ignored.</remarks>
+        public static int AndroidSessionId => GetConfig(Configuration.AndroidSessionId);
+
+        /// <summary>
+        /// Android: Enable AAudio output?
+        /// <para>
+        /// AAudio is the recommended low-latency audio API on Android 8.0 (API 26) and above.
+        /// Set to <see langword="true"/> before calling <see cref="Init"/> to request AAudio.
+        /// Falls back to AudioTrack if AAudio is unavailable.
+        /// </para>
+        /// </summary>
+        public static bool AndroidAAudio
+        {
+            get => GetConfigBool(Configuration.AndroidAAudio);
+            set => Configure(Configuration.AndroidAAudio, value);
+        }
+
+        /// <summary>
+        /// Backwards-compatible handling of MP3 gapless data.
+        /// When enabled (non-zero), disables iTunSMPB tag parsing and the automatic 529-sample gap assumption
+        /// that BASS adds for consistency across platforms.
+        /// Some applications enable this to maintain legacy MP3 gap behavior.
+        /// </summary>
+        public static int Mp3OldGaps
+        {
+            get => GetConfig(Configuration.Mp3OldGaps);
+            set => Configure(Configuration.Mp3OldGaps, value);
+        }
+
+        /// <summary>
+        /// When set to <see langword="false"/>, prevents the output device from being paused when it
+        /// exceeds its processing timeout.
+        /// </summary>
+        /// <remarks>
+        /// See https://www.un4seen.com/forum/?topic=19601 for details.
+        /// </remarks>
+        public static bool DevTimeout
+        {
+            get => GetConfigBool(Configuration.DevTimeout);
+            set => Configure(Configuration.DevTimeout, value);
+        }
     }
 }

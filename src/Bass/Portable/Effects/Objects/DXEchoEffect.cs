@@ -66,10 +66,10 @@ namespace ManagedBass.DirectX8
         /// </summary>
         public bool PanDelay
         {
-            get => Parameters.lPanDelay;
+            get => Parameters.lPanDelay != 0;
             set
             {
-                Parameters.lPanDelay = value;
+                Parameters.lPanDelay = value ? 1 : 0;
 
                 OnPropertyChanged();
             }

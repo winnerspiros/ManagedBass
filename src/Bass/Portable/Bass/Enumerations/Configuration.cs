@@ -246,9 +246,24 @@
         AndroidSessionId = 62,
 
         /// <summary>
+        /// Backwards-compatible handling of MP3 gapless data.
+        /// When enabled (non-zero), disables iTunSMPB tag parsing and the automatic 529-sample gap assumption
+        /// that BASS adds for consistency across platforms.
+        /// Some applications enable this to maintain legacy MP3 gap behavior.
+        /// </summary>
+        Mp3OldGaps = 68,
+
+        /// <summary>
         /// Enable AAudio output
         /// </summary>
         AndroidAAudio = 67,
+
+        /// <summary>
+        /// When set to <see langword="false"/>, prevents the output device from being paused when it
+        /// exceeds its processing timeout. Useful in conjunction with experimental WASAPI mode.
+        /// See https://www.un4seen.com/forum/?topic=19601 for details.
+        /// </summary>
+        DevTimeout = 70,
 
         /// <summary>
         /// See BassAc3.DRC.

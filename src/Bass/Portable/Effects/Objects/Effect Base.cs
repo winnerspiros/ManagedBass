@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -13,6 +14,9 @@ namespace ManagedBass
     {
         int _channel, _effectHandle, _hfsync;
         GCHandle _gch;
+
+        // Cached delegate — avoids a new closure allocation on every ApplyOn call.
+        SyncProcedure _freeSyncProc;
         
         /// <summary>
         /// Effect's Parameters.
@@ -31,8 +35,10 @@ namespace ManagedBass
 
             if (!_gch.IsAllocated)
                 _gch = GCHandle.Alloc(Parameters, GCHandleType.Pinned);
-            
-            _hfsync = Bass.ChannelSetSync(Channel, SyncFlags.Free, 0, (a, b, c, d) => Dispose());
+
+            // Create the delegate once and reuse on subsequent ApplyOn calls.
+            _freeSyncProc ??= (_, _, _, _) => Dispose();
+            _hfsync = Bass.ChannelSetSync(Channel, SyncFlags.Free, 0, _freeSyncProc);
         }
                 
         int _priority;
@@ -107,12 +113,19 @@ namespace ManagedBass
         /// </summary>
         public event PropertyChangedEventHandler PropertyChanged;
 
+        // Reuse PropertyChangedEventArgs instances by name — they are immutable and safe to share.
+        static readonly ConcurrentDictionary<string, PropertyChangedEventArgs> _argsCache =
+            new ConcurrentDictionary<string, PropertyChangedEventArgs>(StringComparer.Ordinal);
+
         /// <summary>
         /// Fires the <see cref="PropertyChanged"/> event.
         /// </summary>
         protected virtual void OnPropertyChanged([CallerMemberName] string PropertyName = null)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(PropertyName));
+            if (PropertyChanged == null) return;
+            var args = _argsCache.GetOrAdd(PropertyName ?? string.Empty,
+                static name => new PropertyChangedEventArgs(name));
+            PropertyChanged.Invoke(this, args);
         }
     }
 }

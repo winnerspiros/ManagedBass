@@ -38,8 +38,11 @@ namespace ManagedBass
         /// <seealso cref="FXGetParameters(int,IntPtr)"/>
         public static bool FXSetParameters(int Handle, IEffectParameter Parameters)
         {
-            using (var gcp = new GCPin(Parameters))
-                return FXSetParameters(Handle, gcp.Pointer);
+            // Inline the GCHandle directly — avoids allocating the GCPin wrapper object on the heap.
+            var gch = System.Runtime.InteropServices.GCHandle.Alloc(Parameters,
+                System.Runtime.InteropServices.GCHandleType.Pinned);
+            try { return FXSetParameters(Handle, gch.AddrOfPinnedObject()); }
+            finally { gch.Free(); }
         }
 
         /// <summary>
@@ -71,8 +74,11 @@ namespace ManagedBass
         /// <seealso cref="FXSetParameters(int,IntPtr)"/>
         public static bool FXGetParameters(int Handle, IEffectParameter Parameters)
         {
-            using (var gcp = new GCPin(Parameters))
-                return FXGetParameters(Handle, gcp.Pointer);
+            // Inline the GCHandle directly — avoids allocating the GCPin wrapper object on the heap.
+            var gch = System.Runtime.InteropServices.GCHandle.Alloc(Parameters,
+                System.Runtime.InteropServices.GCHandleType.Pinned);
+            try { return FXGetParameters(Handle, gch.AddrOfPinnedObject()); }
+            finally { gch.Free(); }
         }
 
         /// <summary>

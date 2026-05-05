@@ -1,9 +1,9 @@
 // Adopted from the great article: http://www.codeproject.com/Articles/17890/Do-Anything-With-ID
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -24,6 +24,9 @@ namespace ManagedBass
 
         IntPtr _ptr;
         readonly Version _versionInfo;
+
+        // Cached static encoding to avoid Encoding.GetEncoding("UTF-16BE") allocation on every call.
+        static readonly Encoding _utf16Be = Encoding.BigEndianUnicode;
 
         /// <summary>
         /// Reads tags from an <see cref="IntPtr"/> to an ID3v2 block.
@@ -106,7 +109,8 @@ namespace ManagedBass
                     textEncoding = (TextEncodings)ReadByte();
                     Length--;
 
-                    if (!Enum.IsDefined(typeof(TextEncodings), textEncoding))
+                    // Range check instead of Enum.IsDefined (which boxes the enum value).
+                    if ((uint)textEncoding > 3)
                         return false;
                 }
 
@@ -136,8 +140,9 @@ namespace ManagedBass
                     var TextEncoding = (TextEncodings)ReadByte();
                         
                     Length--;
-                        
-                    if (!Enum.IsDefined(typeof(TextEncodings), TextEncoding))
+
+                    // Range check instead of Enum.IsDefined.
+                    if ((uint)TextEncoding > 3)
                         return false;
 
                     _ptr += 3;
@@ -153,8 +158,9 @@ namespace ManagedBass
                     var textEncoding = (TextEncodings)ReadByte();
                         
                     Length--;
-                        
-                    if (!Enum.IsDefined(typeof(TextEncodings), textEncoding))
+
+                    // Range check instead of Enum.IsDefined.
+                    if ((uint)textEncoding > 3)
                         return false;
 
                     var mimeType = ReadText(Length, TextEncodings.Ascii, ref Length, true);
@@ -181,20 +187,29 @@ namespace ManagedBass
             return false;
         }
 
+        // Replaced LINQ Cast<char>().All(...) with a plain loop — avoids IEnumerator allocation.
         static bool IsValidFrameID(string FrameID)
         {
-            if (FrameID == null || (FrameID.Length != 3 && FrameID.Length != 4))
-                return false;
+            if (FrameID == null) return false;
+            var len = FrameID.Length;
+            if (len != 3 && len != 4) return false;
 
-            return FrameID.Cast<char>().All(ch => char.IsUpper(ch) || char.IsDigit(ch));
+            for (var i = 0; i < len; i++)
+            {
+                var c = FrameID[i];
+                if (!char.IsUpper(c) && !char.IsDigit(c))
+                    return false;
+            }
+            return true;
         }
 
-        // Multiple values for text tags are separated by ';'.
+        // Single-lookup for duplicate text frame keys.
         void AddTextFrame(string Key, string Value)
         {
-            if (TextFrames.ContainsKey(Key))
-                TextFrames[Key] += ";" + Value;
-            else TextFrames.Add(Key, Value);
+            if (TextFrames.TryGetValue(Key, out var existing))
+                TextFrames[Key] = existing + ";" + Value;
+            else
+                TextFrames.Add(Key, Value);
         }
 
         /// <summary>
@@ -221,15 +236,21 @@ namespace ManagedBass
 
             var bytesRead = 0;
 
-            using (var mStream = new MemoryStream())
+            // Use an ArrayPool-rented buffer instead of MemoryStream to avoid heap allocations.
+            var rentedBuf = ArrayPool<byte>.Shared.Rent(MaxLength);
+            var bufPos = 0;
+
+            try
             {
                 if (DetectEncoding && MaxLength >= 3)
                 {
-                    var buffer = new byte[3];
+                    // Read 3 BOM bytes individually via Marshal.ReadByte instead of allocating byte[3].
+                    var b0 = Marshal.ReadByte(_ptr);
+                    var b1 = Marshal.ReadByte(_ptr + 1);
+                    var b2 = Marshal.ReadByte(_ptr + 2);
+                    _ptr += 3; // advance as if Read(buffer, 0, 3) was called
 
-                    Read(buffer, 0, buffer.Length);
-
-                    if (buffer[0] == 0xFF && buffer[1] == 0xFE)
+                    if (b0 == 0xFF && b1 == 0xFE)
                     {
                         // FF FE
                         TEncoding = TextEncodings.Utf16; // UTF-16 (LE)
@@ -237,8 +258,7 @@ namespace ManagedBass
                         bytesRead += 1;
                         MaxLength -= 2;
                     }
-
-                    else if (buffer[0] == 0xFE && buffer[1] == 0xFF)
+                    else if (b0 == 0xFE && b1 == 0xFF)
                     {
                         // FE FF
                         TEncoding = TextEncodings.Utf16Be;
@@ -246,8 +266,7 @@ namespace ManagedBass
                         bytesRead += 1;
                         MaxLength -= 2;
                     }
-
-                    else if (buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
+                    else if (b0 == 0xEF && b1 == 0xBB && b2 == 0xBF)
                     {
                         // EF BB BF
                         TEncoding = TextEncodings.Utf8;
@@ -266,7 +285,7 @@ namespace ManagedBass
                     var buf = ReadByte();
 
                     if (buf != 0) // if it's data byte
-                        mStream.WriteByte(buf);
+                        rentedBuf[bufPos++] = buf;
 
                     else // if Buf == 0
                     {
@@ -277,8 +296,8 @@ namespace ManagedBass
                             if (temp == 0)
                                 break;
 
-                            mStream.WriteByte(buf);
-                            mStream.WriteByte(temp);
+                            rentedBuf[bufPos++] = buf;   // the null byte is part of the 2-byte sequence
+                            rentedBuf[bufPos++] = temp;
                             MaxLength--;
                         }
                         else break;
@@ -292,33 +311,32 @@ namespace ManagedBass
 
                 ReadedLength -= bytesRead;
 
-                return GetEncoding(TEncoding).GetString(mStream.ToArray(), 0, (int)mStream.Length);
+                return GetEncoding(TEncoding).GetString(rentedBuf, 0, bufPos);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(rentedBuf);
             }
         }
 
+        // Reads a single byte from the current pointer position — no byte[1] allocation.
         byte ReadByte()
         {
-            var rByte = new byte[1];
-
-            Read(rByte, 0, 1);
-
-            return rByte[0];
+            var b = Marshal.ReadByte(_ptr);
+            _ptr += 1;
+            return b;
         }
 
+        // Decodes a big-endian uint of 1-4 bytes without heap allocation.
         uint ReadUInt(int Length)
         {
-            if (Length > 4 || Length < 1)
+            if (Length < 1 || Length > 4)
                 throw new ArgumentOutOfRangeException(nameof(Length), "ReadUInt method can read 1-4 byte(s)");
 
-            byte[] buf = new byte[Length],
-                   rBuf = new byte[4];
-
-            Read(buf, 0, Length);
-
-            buf.CopyTo(rBuf, 4 - buf.Length);
-            Array.Reverse(rBuf);
-
-            return BitConverter.ToUInt32(rBuf, 0);
+            uint result = 0;
+            for (var i = 0; i < Length; i++)
+                result = (result << 8) | ReadByte();
+            return result;
         }
 
         int ReadSize()
@@ -331,18 +349,12 @@ namespace ManagedBass
             return ReadByte() * 0x200000 + ReadByte() * 0x4000 + ReadByte() * 0x80 + ReadByte();
         }
 
-        static Encoding GetEncoding(TextEncodings TEncoding)
+        static Encoding GetEncoding(TextEncodings TEncoding) => TEncoding switch
         {
-            switch (TEncoding)
-            {
-                case TextEncodings.Utf16:
-                    return Encoding.Unicode;
-                case TextEncodings.Utf16Be:
-                    return Encoding.GetEncoding("UTF-16BE");
-                default:
-                    return Encoding.UTF8;
-            }
-        }
+            TextEncodings.Utf16   => Encoding.Unicode,
+            TextEncodings.Utf16Be => _utf16Be,
+            _                     => Encoding.UTF8,
+        };
 
         void Read(byte[] Buffer, int Offset, int Count)
         {
