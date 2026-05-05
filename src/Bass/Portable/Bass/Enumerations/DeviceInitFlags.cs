@@ -88,6 +88,13 @@ namespace ManagedBass
         /// <summary>
         /// Use DirectSound output.
         /// </summary>
-        DirectSound = 0x40000
+        DirectSound = 0x40000,
+
+        /// <summary>
+        /// Re-initialize a device that has already been initialized, retaining any existing BASS channels.
+        /// Without this flag, <see cref="Bass.Init"/> will fail with <see cref="Errors.Already"/> if the
+        /// device is already initialized. osu uses this flag for seamless device switching.
+        /// </summary>
+        Reinit = 0x80
     }
 }

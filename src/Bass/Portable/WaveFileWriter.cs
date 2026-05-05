@@ -14,6 +14,7 @@ namespace ManagedBass
         BinaryWriter _writer;
         readonly long _dataSizePos, _factSampleCountPos;
         readonly object _locker = new object();
+        readonly bool _leaveOpen;
         
         /// <summary>
         /// Number of bytes of audio
@@ -27,8 +28,23 @@ namespace ManagedBass
         /// <summary>
         /// Creates a <see cref="WaveFileWriter"/> that writes to a <see cref="Stream"/>.
         /// </summary>
+        /// <param name="outStream">The stream to write to.</param>
+        /// <param name="format">The wave format.</param>
         public WaveFileWriter(Stream outStream, WaveFormat format)
+            : this(outStream, format, leaveOpen: false) { }
+
+        /// <summary>
+        /// Creates a <see cref="WaveFileWriter"/> that writes to a <see cref="Stream"/>.
+        /// </summary>
+        /// <param name="outStream">The stream to write to.</param>
+        /// <param name="format">The wave format.</param>
+        /// <param name="leaveOpen">
+        /// <see langword="true"/> to leave <paramref name="outStream"/> open after this
+        /// <see cref="WaveFileWriter"/> is disposed; <see langword="false"/> to close it.
+        /// </param>
+        public WaveFileWriter(Stream outStream, WaveFormat format, bool leaveOpen)
         {
+            _leaveOpen = leaveOpen;
             _ofstream = outStream;
             _writer = new BinaryWriter(outStream, UTF8);
 
@@ -168,7 +184,8 @@ namespace ManagedBass
                     _writer = null;
                 }
 
-                _ofstream.Dispose(); // will close the underlying base stream
+                if (!_leaveOpen)
+                    _ofstream.Dispose(); // close the underlying base stream only when not asked to leave it open
                 _ofstream = null;
             }
         }

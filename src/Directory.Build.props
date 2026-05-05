@@ -1,10 +1,15 @@
 ﻿<Project>
     <PropertyGroup>
-        <TargetFrameworks>net45;netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+        <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
         <Version>1.0.0</Version>
         <NoWarn>CS1734;CS0419</NoWarn>
+        <!-- Shared NuGet metadata — individual csproj files override Description and AssemblyName -->
+        <Authors>winnerspiros</Authors>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/winnerspiros/ManagedBass</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/winnerspiros/ManagedBass</PackageProjectUrl>
     </PropertyGroup>
 </Project>
