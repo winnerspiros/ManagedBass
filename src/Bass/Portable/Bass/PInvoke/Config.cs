@@ -611,7 +611,12 @@ namespace ManagedBass
         /// <para>
         /// This is the most direct lever for output latency on Android (AAudio/AudioTrack) and WASAPI.
         /// Lower values reduce latency but increase CPU usage and risk of audio glitches.
-        /// A value of -256 requests 256-sample blocks (about 5.8 ms at 44100 Hz).
+        /// </para>
+        /// <para>
+        /// <b>Negative values</b> request an exact sample count instead of milliseconds:
+        /// -256 = 256 samples (≈5.8 ms @ 44100 Hz), -512 = 512 samples (≈11.6 ms), -1024 = 1024 samples (≈23.2 ms).
+        /// For Android/AAudio, -512 is the recommended starting point — reliable on most devices.
+        /// Use -256 only if your device supports it without glitches.
         /// </para>
         /// <para><b>Platform-specific:</b> This setting must be changed before calling <see cref="Init"/>.</para>
         /// </summary>
