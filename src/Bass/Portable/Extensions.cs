@@ -186,7 +186,7 @@ namespace ManagedBass
             {
                 var buf = stackalloc byte[Size];
                 for (var i = 0; i < Size; i++) buf[i] = bytes[i];
-                return Encoding.UTF8.GetString(buf, Size);
+                return Encoding.UTF8.GetString((byte*)buf, Size);
             }
             else
             {

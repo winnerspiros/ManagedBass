@@ -36,8 +36,10 @@ namespace ManagedBass.Cd
         {
             get
             {
+                if (tracks == null)
+                    return default;
                 var n = size / BassMarshal.SizeOf<TOC>();
-                return new ArraySegment<TOCTrack>(tracks, 0, Math.Min(n, tracks?.Length ?? 0));
+                return new ArraySegment<TOCTrack>(tracks, 0, Math.Min(n, tracks.Length));
             }
         }
     }
