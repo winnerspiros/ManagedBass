@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -112,12 +113,19 @@ namespace ManagedBass
         /// </summary>
         public event PropertyChangedEventHandler PropertyChanged;
 
+        // Reuse PropertyChangedEventArgs instances by name — they are immutable and safe to share.
+        static readonly ConcurrentDictionary<string, PropertyChangedEventArgs> _argsCache =
+            new ConcurrentDictionary<string, PropertyChangedEventArgs>(StringComparer.Ordinal);
+
         /// <summary>
         /// Fires the <see cref="PropertyChanged"/> event.
         /// </summary>
         protected virtual void OnPropertyChanged([CallerMemberName] string PropertyName = null)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(PropertyName));
+            if (PropertyChanged == null) return;
+            var args = _argsCache.GetOrAdd(PropertyName ?? string.Empty,
+                static name => new PropertyChangedEventArgs(name));
+            PropertyChanged.Invoke(this, args);
         }
     }
 }

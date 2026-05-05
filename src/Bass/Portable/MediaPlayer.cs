@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -65,6 +66,13 @@ namespace ManagedBass
         static MediaPlayer()
         {
             var currentDev = Bass.CurrentDevice;
+
+#if __ANDROID__
+            // On Android, opt in to AAudio (Android 8.0+ low-latency native API) before Init.
+            // BASS falls back to AudioTrack automatically on devices running Android < 8.0,
+            // so this is safe to set unconditionally.
+            Bass.AndroidAAudio = true;
+#endif
 
             if (currentDev == -1 || !Bass.GetDeviceInfo(Bass.CurrentDevice).IsInitialized)
                 Bass.Init(currentDev);
@@ -392,6 +400,10 @@ namespace ManagedBass
         /// </summary>
         public event PropertyChangedEventHandler PropertyChanged;
 
+        // Reuse PropertyChangedEventArgs instances by name — they are immutable and safe to share.
+        static readonly ConcurrentDictionary<string, PropertyChangedEventArgs> _argsCache =
+            new ConcurrentDictionary<string, PropertyChangedEventArgs>(StringComparer.Ordinal);
+
         /// <summary>
         /// Fires the <see cref="PropertyChanged"/> event.
         /// </summary>
@@ -402,7 +414,8 @@ namespace ManagedBass
 
             // Invoke directly or marshal to the captured synchronization context.
             // Capture handler upfront to avoid race between null-check and invocation.
-            var args = new PropertyChangedEventArgs(PropertyName);
+            var args = _argsCache.GetOrAdd(PropertyName ?? string.Empty,
+                static name => new PropertyChangedEventArgs(name));
 
             if (_syncContext == null)
                 handler(this, args);

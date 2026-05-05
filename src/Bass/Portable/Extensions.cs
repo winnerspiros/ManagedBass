@@ -1,6 +1,5 @@
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -94,24 +93,35 @@ namespace ManagedBass
         /// <summary>
         /// Extract an array of strings from a pointer to ANSI null-terminated string ending with a double null.
         /// </summary>
-        public static string[] ExtractMultiStringAnsi(IntPtr Ptr)
+        public static unsafe string[] ExtractMultiStringAnsi(IntPtr Ptr)
         {
-            var l = new List<string>();
+            if (Ptr == IntPtr.Zero)
+                return Array.Empty<string>();
 
-            while (true)
+            // Pass 1: count entries by walking byte-by-byte — no string allocation.
+            var count = 0;
+            var p = (byte*)Ptr;
+            while (*p != 0)
             {
-                var str = Ptr == IntPtr.Zero ? null : Marshal.PtrToStringAnsi(Ptr);
-
-                if (string.IsNullOrEmpty(str))
-                    break;
-                
-                l.Add(str);
-
-                // char '\0'
-                Ptr += str.Length + 1;
+                while (*p != 0) p++; // advance past the string
+                p++;                 // skip null terminator
+                count++;
             }
 
-            return l.ToArray();
+            if (count == 0)
+                return Array.Empty<string>();
+
+            // Pass 2: fill an exactly-sized array — no List<string> overhead.
+            var result = new string[count];
+            p = (byte*)Ptr;
+            for (var i = 0; i < count; i++)
+            {
+                result[i] = Marshal.PtrToStringAnsi((IntPtr)p);
+                while (*p != 0) p++;
+                p++; // skip null terminator
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -119,21 +129,33 @@ namespace ManagedBass
         /// </summary>
         public static string[] ExtractMultiStringUtf8(IntPtr Ptr)
         {
-            var l = new List<string>();
+            if (Ptr == IntPtr.Zero)
+                return Array.Empty<string>();
 
+            // Pass 1: count entries to allocate an exact-size array — no List<string> overhead.
+            var count = 0;
+            var p = Ptr;
             while (true)
             {
-                var str = PtrToStringUtf8(Ptr, out int size);
-
-                if (string.IsNullOrEmpty(str))
-                    break;
- 
-                l.Add(str);
-
-                Ptr += size + 1;
+                var s = PtrToStringUtf8(p, out var size);
+                if (string.IsNullOrEmpty(s)) break;
+                count++;
+                p += size + 1;
             }
 
-            return l.ToArray();
+            if (count == 0)
+                return Array.Empty<string>();
+
+            // Pass 2: fill the exact-sized array.
+            var result = new string[count];
+            p = Ptr;
+            for (var i = 0; i < count; i++)
+            {
+                result[i] = PtrToStringUtf8(p, out var size);
+                p += size + 1;
+            }
+
+            return result;
         }
 
         static unsafe string PtrToStringUtf8(IntPtr Ptr, out int Size)

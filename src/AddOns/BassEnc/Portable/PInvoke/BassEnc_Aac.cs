@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace ManagedBass.Enc
 {
@@ -122,10 +120,9 @@ namespace ManagedBass.Enc
         }
 
         /// <summary>
-        /// Converts 4 chars into an Int32 value.
+        /// Converts 4 ASCII chars into an Int32 value (little-endian byte order).
         /// </summary>
-        /// <param name="chars">The 4 chars to convert.</param>
-        /// <returns>An Int32 value.</returns>
-        private static int CharsToInt(string chars) => BitConverter.ToInt32(Encoding.ASCII.GetBytes(chars), 0);
+        private static int CharsToInt(string chars) =>
+            chars[0] | (chars[1] << 8) | (chars[2] << 16) | (chars[3] << 24);
     }
 }
