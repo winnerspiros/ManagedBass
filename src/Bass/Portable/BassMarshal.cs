@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace ManagedBass;
@@ -18,25 +17,13 @@ public static class BassMarshal
     /// <exception cref="T:System.ArgumentNullException">
     /// <paramref name="structureType" /> is <see langword="null" />.</exception>
     /// <exception cref="T:System.MissingMethodException">The class specified by <paramref name="structureType" /> does not have an accessible default constructor.</exception>
-    public static T PtrToStructure<T>(IntPtr ptr)
-    {
-#if NETFRAMEWORK
-        return (T)Marshal.PtrToStructure(ptr, typeof(T));
-#else
-        return Marshal.PtrToStructure<T>(ptr);
-#endif
-    }
+    public static T PtrToStructure<T>(IntPtr ptr) => Marshal.PtrToStructure<T>(ptr);
 
     /// <summary>Returns the size of an unmanaged type in bytes.</summary>
     /// <typeparam name="T">The type whose size is to be returned.</typeparam>
     /// <returns>The size of the specified type in unmanaged code.</returns>
     /// <exception cref="T:System.ArgumentException">The <typeparamref name="T"/> parameter is a generic type definition.</exception>
-    public static int SizeOf<T>() =>
-#if NETFRAMEWORK
-        Marshal.SizeOf(typeof(T));
-#else
-        Marshal.SizeOf<T>();
-#endif
+    public static int SizeOf<T>() => Marshal.SizeOf<T>();
 
     /// <summary>Returns the size of an unmanaged type in bytes.</summary>
     /// <param name="obj">The type whose size is to be returned.</param>

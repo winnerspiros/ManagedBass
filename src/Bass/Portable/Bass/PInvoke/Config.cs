@@ -615,8 +615,8 @@ namespace ManagedBass
         /// <para>
         /// <b>Negative values</b> request an exact sample count instead of milliseconds:
         /// -256 = 256 samples (≈5.8 ms @ 44100 Hz), -512 = 512 samples (≈11.6 ms), -1024 = 1024 samples (≈23.2 ms).
-        /// For Android/AAudio, -512 is the recommended starting point — reliable on most devices.
-        /// Use -256 only if your device supports it without glitches.
+        /// For Android/AAudio, <b>-256 is the recommended value for general use</b> on modern devices (2020+).
+        /// Use -512 as a conservative fallback if you observe glitches on older or weaker hardware.
         /// </para>
         /// <para><b>Platform-specific:</b> This setting must be changed before calling <see cref="Init"/>.</para>
         /// </summary>
