@@ -5,11 +5,17 @@ namespace ManagedBass
 {
     public static partial class Bass
     {
-        static readonly IOSNotifyProcedure iosnproc = status => _iosnotify?.Invoke(status);
-
         static event IOSNotifyProcedure _iosnotify;
 
-        // TODO: Needs MonoPInvokeDelegateAttribute.
+        // Named static method so that MonoPInvokeCallback can be applied for iOS AOT compilation.
+        // A lambda cannot carry the attribute, so we use a static trampoline instead.
+#if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(IOSNotifyProcedure))]
+#endif
+        static void IosNotifyCallback(IOSNotify status) => _iosnotify?.Invoke(status);
+
+        static readonly IOSNotifyProcedure iosnproc = IosNotifyCallback;
+
         /// <summary>
         /// Fired when an iOS Audio Session Notification occurs.
         /// </summary>
