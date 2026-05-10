@@ -93,9 +93,10 @@ namespace ManagedBass
             try
             {
                 lock (_locker)
+                {
                     _writer.Write(Data, 0, Length);
-
-                this.Length += Length;
+                    this.Length += Length;
+                }
 
                 return true;
             }
@@ -121,9 +122,8 @@ namespace ManagedBass
                     for (var i = 0; i < n; i++)
                         _writer.Write(Data[i]);
 #endif
+                    this.Length += Length;
                 }
-
-                this.Length += Length;
 
                 return true;
             }
@@ -149,9 +149,8 @@ namespace ManagedBass
                     for (var i = 0; i < n; i++)
                         _writer.Write(Data[i]);
 #endif
+                    this.Length += Length;
                 }
-
-                this.Length += Length;
 
                 return true;
             }
@@ -177,9 +176,12 @@ namespace ManagedBass
         {
             if (!Disposing || _writer == null)
                 return;
-            try
+
+            // Hold the lock for the entire finalisation sequence so that no concurrent
+            // Write() call can sneak in between header-patching and writer disposal.
+            lock (_locker)
             {
-                lock (_locker)
+                try
                 {
                     _writer.Flush();
 
@@ -195,19 +197,16 @@ namespace ManagedBass
                     _writer.Seek((int) _dataSizePos, SeekOrigin.Begin);
                     _writer.Write((int) Length);
                 }
-            }
-            finally
-            {
-                lock (_locker)
+                finally
                 {
                     _writer.Dispose();
                     _writer = null;
                 }
-
-                if (!_leaveOpen)
-                    _ofstream.Dispose(); // close the underlying base stream only when not asked to leave it open
-                _ofstream = null;
             }
+
+            if (!_leaveOpen)
+                _ofstream.Dispose(); // close the underlying base stream only when not asked to leave it open
+            _ofstream = null;
         }
 
         /// <summary>
