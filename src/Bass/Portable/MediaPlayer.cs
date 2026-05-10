@@ -82,10 +82,11 @@ namespace ManagedBass
             // so this is safe to set unconditionally.
             Bass.AndroidAAudio = true;
 
-            // Request 512-sample (≈11.6 ms @ 44100 Hz) AAudio buffer — lowest reliable value
-            // on most Android devices. Reduces round-trip latency significantly vs the 100 ms default.
-            // Must be set before Bass.Init().
-            Bass.DevicePeriod = -512;
+            // Request 256-sample (≈5.8 ms @ 44100 Hz) AAudio buffer.
+            // -256 is the best safe limit for general use: modern Android devices (2020+)
+            // handle it without glitches. Fall back to -512 (≈11.6 ms) if you observe
+            // stuttering on older/weaker hardware. Must be set before Bass.Init().
+            Bass.DevicePeriod = -256;
 
             // Reduce the stream-buffer update interval from the 100 ms default to 10 ms.
             // This allows BASS to fill the AAudio buffer more aggressively and avoids underruns.
