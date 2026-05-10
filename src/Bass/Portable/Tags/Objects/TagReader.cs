@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace ManagedBass
@@ -142,7 +141,7 @@ namespace ManagedBass
             return result;
         }
 
-        IEnumerable<KeyValuePair<string, string>> ReadUsingLookupTable(IEnumerable<string> Tags, TagProperties<IEnumerable<string>> LookupTable, char Separator)
+        IEnumerable<KeyValuePair<string, string>> ReadUsingLookupTable(IEnumerable<string> Tags, TagProperties<HashSet<string>> LookupTable, char Separator)
         {
             foreach (var tag in Tags)
             {
@@ -158,7 +157,7 @@ namespace ManagedBass
             }
         }
 
-        bool SetTagUsingLookupTable(string Key, string Value, TagProperties<IEnumerable<string>> LookupTable)
+        bool SetTagUsingLookupTable(string Key, string Value, TagProperties<HashSet<string>> LookupTable)
         {
             if (LookupTable.Title != null && LookupTable.Title.Contains(Key))
                 Title = Value;

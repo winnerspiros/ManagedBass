@@ -13,6 +13,10 @@ namespace ManagedBass
         static readonly ConcurrentDictionary<(int Handle, int SpecificHandle), object> Procedures =
             new ConcurrentDictionary<(int, int), object>();
 
+        // Per-handle reference count — allows O(1) check in Add() instead of an O(n) scan.
+        static readonly ConcurrentDictionary<int, int> _handleCount =
+            new ConcurrentDictionary<int, int>();
+
         static readonly SyncProcedure Freeproc = Callback;
 
         /// <summary>
@@ -30,23 +34,15 @@ namespace ManagedBass
                 return;
 
             var key = (Handle, SpecificHandle);
-
-            // Check (without LINQ) whether any existing key belongs to this Handle.
-            // If none found, register the Free sync so we can clean up on channel release.
-            bool hasHandle = false;
-            foreach (var pair in Procedures)
-            {
-                if (pair.Key.Handle == Handle)
-                {
-                    hasHandle = true;
-                    break;
-                }
-            }
-
-            if (!hasHandle)
-                Bass.ChannelSetSync(Handle, SyncFlags.Free, 0, Freeproc);
-
             Procedures[key] = proc;
+
+            // Increment the per-handle ref count.  When it reaches 1 for the first time,
+            // register the Free sync so we can clean up on channel release.
+            // ConcurrentDictionary.AddOrUpdate is atomic per entry, so exactly one thread
+            // will see newCount == 1 and register the sync.
+            var newCount = _handleCount.AddOrUpdate(Handle, 1, static (_, old) => old + 1);
+            if (newCount == 1)
+                Bass.ChannelSetSync(Handle, SyncFlags.Free, 0, Freeproc);
         }
 
         /// <summary>
@@ -57,7 +53,8 @@ namespace ManagedBass
             if (!CrossPlatformHelper.IsDynamicCodeSupported)
                 return;
 
-            Procedures.TryRemove((Handle, SpecialHandle), out _);
+            if (Procedures.TryRemove((Handle, SpecialHandle), out _))
+                _handleCount.AddOrUpdate(Handle, 0, static (_, old) => old > 0 ? old - 1 : 0);
         }
 
         static void Callback(int Handle, int Channel, int Data, IntPtr User)
@@ -71,6 +68,8 @@ namespace ManagedBass
                 if (pair.Key.Handle == Channel)
                     Procedures.TryRemove(pair.Key, out _);
             }
+
+            _handleCount.TryRemove(Channel, out _);
         }
     }
 }
